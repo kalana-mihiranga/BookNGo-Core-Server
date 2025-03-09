@@ -1,12 +1,13 @@
 const prisma = require('../prisma/prismaClient');  // Import Prisma client
+const AppError = require("../utils/AppError");
 
 // POST API to Insert a New User
-exports.createUser = async (req, res) => {
+exports.createUser = async (req, res, next) => {
     const { name, email } = req.body;
 
     // Validate input
     if (!name || !email) {
-        return res.status(400).json({ error: 'Name and Email are required' });
+        return next(new AppError('Name and Email are required', 400));
     }
 
     try {
@@ -22,16 +23,16 @@ exports.createUser = async (req, res) => {
         res.status(201).json(newUser);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error creating user' });
+        return next(new AppError('Error creating user', 500));
     }
 };
 
-exports.getUser = async (req, res) => {
+exports.getUser = async (req, res, next) => {
     const userId = parseInt(req.params.id);  // Get the user ID from the URL parameter
 
     // Validate if the ID is a valid number
     if (isNaN(userId)) {
-        return res.status(400).json({ error: 'Invalid User ID' });
+        return next(new AppError('Invalid User ID', 400));
     }
 
     try {
@@ -43,13 +44,13 @@ exports.getUser = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            return next(new AppError('User not found', 400));
         }
 
         // Return the user object
         res.status(200).json(user);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error retrieving user' });
+        return next(new AppError('Error retrieving user', 500));
     }
 };
