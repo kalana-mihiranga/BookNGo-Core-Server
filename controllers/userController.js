@@ -1,16 +1,19 @@
 const prisma = require('../prisma/prismaClient');  // Import Prisma client
 const AppError = require("../utils/AppError");
+const { ADD_USER_MODEL } = require('../validation/user');
+const validateRequest = require('../utils/validateRequest');
 
 // POST API to Insert a New User
 exports.createUser = async (req, res, next) => {
     const { name, email } = req.body;
 
-    // Validate input
-    if (!name || !email) {
-        return next(new AppError('Name and Email are required', 400));
-    }
-
     try {
+        const validationErrors = validateRequest(req.body, ADD_USER_MODEL);
+
+        if (validationErrors) {
+            return res.status(402).json({ status: false, message: "Request body data validation failed", validationErrors });
+        }
+
         // Insert new user into the database
         const newUser = await prisma.user.create({
             data: {
