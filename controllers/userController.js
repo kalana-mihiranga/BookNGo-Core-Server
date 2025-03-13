@@ -1,59 +1,73 @@
-const prisma = require('../prisma/prismaClient');  // Import Prisma client
+require('dotenv').config();
+const prisma = require('../prisma/prismaClient');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const AppError = require("../utils/AppError");
-const { ADD_USER_MODEL } = require('../validation/user');
+const { SIGNUP_USER_MODEL, SIGNIN_USER_MODEL } = require('../validation/user');
 const validateRequest = require('../utils/validateRequest');
+const secretKey = process.env.SECRET_KEY;
 
-// POST API to Insert a New User
-exports.createUser = async (req, res, next) => {
-    const { name, email } = req.body;
+const handleValidation = (reqBody, validationModel) => {
+    const validationErrors = validateRequest(reqBody, validationModel);
+    if (validationErrors) {
+        return { status: false, message: "Validation failed", validationErrors };
+    }
+    return null;
+};
 
+const checkIfUserExists = async (email) => {
+    return await prisma.user.findUnique({ where: { email } });
+};
+
+const generateHashedPassword = async (password) => {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+};
+
+const generateToken = (user) => {
+    return jwt.sign({ name: user.firstName }, secretKey, { expiresIn: "1d" });
+};
+
+exports.signupUser = async (req, res, next) => {
     try {
-        const validationErrors = validateRequest(req.body, ADD_USER_MODEL);
+        const validationResult = handleValidation(req.body, SIGNUP_USER_MODEL);
+        if (validationResult) return res.status(402).json(validationResult);
 
-        if (validationErrors) {
-            return res.status(402).json({ status: false, message: "Request body data validation failed", validationErrors });
-        }
+        const existingUser = await checkIfUserExists(req.body.email);
+        if (existingUser) return next(new AppError("Email already exists", 400));
 
-        // Insert new user into the database
-        const newUser = await prisma.user.create({
+        const hashedPassword = await generateHashedPassword(req.body.password);
+
+        await prisma.user.create({
             data: {
-                name: name,
-                email: email,
-            },
+                firstName: req.body.firstName,
+                lastName: req.body.lastName,
+                email: req.body.email,
+                password: hashedPassword,
+            }
         });
-        
-        // Return the created user object
-        res.status(201).json(newUser);
-    } catch (error) {
-        console.error(error);
-        return next(new AppError('Error creating user', 500));
+
+        res.status(200).json({ status: true, message: "Signup successful" });
+    } catch (err) {
+        return next(new AppError(err.message, 500));
     }
 };
 
-exports.getUser = async (req, res, next) => {
-    const userId = parseInt(req.params.id);  // Get the user ID from the URL parameter
-
-    // Validate if the ID is a valid number
-    if (isNaN(userId)) {
-        return next(new AppError('Invalid User ID', 400));
-    }
-
+exports.signinUser = async (req, res, next) => {
     try {
-        // Retrieve the user from the database by ID
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId,  // Using the ID to query the user
-            },
-        });
+        const validationResult = handleValidation(req.body, SIGNIN_USER_MODEL);
+        if (validationResult) return res.status(402).json(validationResult);
 
-        if (!user) {
-            return next(new AppError('User not found', 400));
-        }
+        const user = await checkIfUserExists(req.body.email);
+        if (!user) return next(new AppError("Invalid email or password", 400));
 
-        // Return the user object
-        res.status(200).json(user);
-    } catch (error) {
-        console.error(error);
-        return next(new AppError('Error retrieving user', 500));
+        const isPasswordMatch = await bcrypt.compare(req.body.password, user.password);
+        if (!isPasswordMatch) return next(new AppError("Invalid email or password", 400));
+
+        const token = generateToken(user);
+
+        res.status(200).json({ status: true, message: "Signin successful", token });
+    } catch (err) {
+        return next(new AppError(err.message, 500));
     }
 };
