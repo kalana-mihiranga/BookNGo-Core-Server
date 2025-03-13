@@ -1,9 +1,8 @@
 const express = require('express');
-const { createUser, getUser } = require('../controllers/userController');
+const { signinUser, signupUser } = require('../controllers/userController');
 const router = express.Router();
 
-// Route to create a new user
-router.post('/users', createUser);
-router.get('/users/:id', getUser);
+router.post('/signin', signinUser); //login
+router.post('/signup', signupUser); //register
 
 module.exports = router;
