@@ -5,7 +5,7 @@ const validateRequest = (body, schema) => {
     const errorDetails = {};
 
     error.details.forEach(err => {
-        const field = err.path[0]; // Extract field name (e.g., name/email)
+        const field = err.path[0]; // Extract field name (e.g., name / email)
         if (!errorDetails[field]) {
             errorDetails[field] = []; // Initialize array if not exists
         }
