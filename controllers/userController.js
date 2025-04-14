@@ -25,7 +25,7 @@ const generateHashedPassword = async (password) => {
 };
 
 const generateToken = (user) => {
-    return jwt.sign({ name: user.firstName }, secretKey, { expiresIn: "1d" });
+    return jwt.sign({ name: user.name }, secretKey, { expiresIn: "1d" });
 };
 
 exports.signupUser = async (req, res, next) => {
@@ -38,14 +38,22 @@ exports.signupUser = async (req, res, next) => {
 
         const hashedPassword = await generateHashedPassword(req.body.password);
 
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: {
-                firstName: req.body.firstName,
-                lastName: req.body.lastName,
+                name: req.body.name,
                 email: req.body.email,
                 password: hashedPassword,
+                role: req.body.role
             }
         });
+
+        if (req.body.role === 'BUSINESS') {
+            await prisma.business.create({
+              data: {
+                id: user.id,
+              },
+            });
+        }
 
         res.status(200).json({ status: true, message: "Signup successful" });
     } catch (err) {

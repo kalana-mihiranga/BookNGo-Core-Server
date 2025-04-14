@@ -7,11 +7,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user {
-  id        Int      @id @default(autoincrement())
-  firstName      String
-  lastName      String
-  email     String   @unique(map: "User_email_key")
-  password String
-  createdAt DateTime @default(now())
+enum Role {
+  TOURIST
+  ADMIN
+  BUSINESS
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique(map: "User_email_key")
+  password  String
+  createdAt DateTime  @default(now())
+  role      Role
+  //if user is business
+  business  Business?
+}
+
+model Business {
+  id   Int  @id
+  user User @relation(fields: [id], references: [id])
+  events Event[]
+}
+
+model Event {
+  id Int @id @default(autoincrement())
+  name String
+  type String
+  category String
+  maximumCount Int
+  cordinatorName String
+  cordinatorContact String
+  description String
+  hashtag String
+  location String
+  country String
+  discount Float?
+  refundPolicy String
+  startTime String
+  endTime String
+  date DateTime
+  bannerUrl String?
+
+  //foreign key constraint
+  businessId Int
+  business Business @relation(fields: [businessId], references: [id])
 }
