@@ -65,10 +65,59 @@ exports.addEvent = async (req, res, next) => {
         date: new Date(req.body.date),
         bannerUrl: req.body.bannerUrl,
         businessId: req.body.businessId,
+        specifications: {
+          create: req.body.specifications,
+        },
+        conditions: {
+          create: req.body.conditions,
+        },
+        priceCategories: {
+          create: req.body.priceCategories,
+        },
       },
     });
 
     res.status(200).json({ status: true, message: "Event created", body: event });
+  } catch (error) {
+    return next(new AppError(error.message, 500));
+  }
+};
+
+exports.searchEvents = async (req, res, next) => {
+  try {
+    const { name, hashtag, page = 1, limit = 10 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const where = {
+      ...(name && {
+        name: {
+          contains: name,
+        },
+      }),
+      ...(hashtag && {
+        hashtag: {
+          contains: hashtag,
+        },
+      }),
+    };
+
+    const events = await prisma.event.findMany({
+      where,
+      skip,
+      take: parseInt(limit),
+      orderBy: { date: 'asc' },
+    });
+
+    const total = await prisma.event.count({ where });
+
+    res.status(200).json({
+      status: true,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      total,
+      events,
+    });
   } catch (error) {
     return next(new AppError(error.message, 500));
   }
