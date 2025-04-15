@@ -63,4 +63,43 @@ exports.CREATE_EVENT_MODEL = Joi.object({
   bannerUrl: Joi.string().uri().optional().messages({
     "string.uri": "Banner URL must be a valid URI.",
   }),
+  //arrays validation
+  specifications: Joi.array().items(
+    Joi.object({
+      specName: Joi.string().required().messages({
+        "any.required": "Specification name (specName) is required.",
+      }),
+    })
+  ).min(1).required().messages({
+    "array.base": "Specifications must be an array.",
+    "array.min": "At least one specification is required.",
+    "any.required": "Specifications are required.",
+  }),
+  conditions: Joi.array().items(
+    Joi.object({
+      condition: Joi.string().required().messages({
+        "any.required": "Condition text is required.",
+      }),
+    })
+  ).min(1).required().messages({
+    "array.base": "Conditions must be an array.",
+    "array.min": "At least one condition is required.",
+    "any.required": "Conditions are required.",
+  }),
+  priceCategories: Joi.array().items(
+    Joi.object({
+      name: Joi.string().required().messages({
+        "any.required": "Price category name is required.",
+      }),
+      price: Joi.number().min(0).required().messages({
+        "number.base": "Price must be a number.",
+        "number.min": "Price cannot be negative.",
+        "any.required": "Price is required.",
+      }),
+    })
+  ).min(1).required().messages({
+    "array.base": "Price categories must be an array.",
+    "array.min": "At least one price category is required.",
+    "any.required": "Price categories are required.",
+  }),
 });

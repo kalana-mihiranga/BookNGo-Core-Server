@@ -52,4 +52,30 @@ model Event {
   //foreign key constraint
   businessId Int
   business Business @relation(fields: [businessId], references: [id])
+
+  specifications    EventSpecification[]
+  conditions        EventCondition[]
+  priceCategories   PriceCategory[]
+}
+
+model EventSpecification {
+  id Int @id @default(autoincrement())
+  specName String
+  eventId Int
+  event Event  @relation(fields: [eventId], references: [id])
+}
+
+model EventCondition {
+  id Int @id @default(autoincrement())
+  condition String
+  eventId Int
+  event Event  @relation(fields: [eventId], references: [id])
+}
+
+model PriceCategory {
+  id Int @id @default(autoincrement())
+  name String
+  price Float
+  eventId Int
+  event Event @relation(fields: [eventId], references: [id])
 }
