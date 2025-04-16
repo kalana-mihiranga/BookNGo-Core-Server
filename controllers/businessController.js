@@ -122,3 +122,69 @@ exports.searchEvents = async (req, res, next) => {
     return next(new AppError(error.message, 500));
   }
 };
+
+exports.updateEvent = async (req, res, next) => {
+  try {
+    const eventId = parseInt(req.params.eventId);
+
+    if (!eventId) {
+      return next(new AppError("Invalid event ID.", 400));
+    }
+
+    const existingEvent = await prisma.event.findUnique({
+      where: {id: eventId},
+    });
+
+    if (!existingEvent) {
+      return next(new AppError("Event not found.", 404));
+    }
+
+    //check conflict with other events (date and time)
+    const conflictEvent = await prisma.event.findFirst({
+      where: {
+        id: {not: eventId},
+        businessId: req.body.businessId ?? existingEvent.businessId,
+        date: new Date(req.body.date ?? existingEvent.date),
+        startTime: {lt: req.body.endTime ?? existingEvent.endTime},
+        endTime: {gt: req.body.startTime ?? existingEvent.startTime},
+      },
+    });
+
+    if (conflictEvent) {
+      return next(new AppError("Another event is already scheduled during the same time.", 409));
+    }
+
+    console.log("bgvvsghxvsgxvgsvxgs - ok")
+
+    const updatedEvent = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        name: req.body.name,
+        type: req.body.type,
+        category: req.body.category,
+        maximumCount: req.body.maximumCount,
+        cordinatorName: req.body.cordinatorName,
+        cordinatorContact: req.body.cordinatorContact,
+        description: req.body.description,
+        hashtag: req.body.hashtag,
+        location: req.body.location,
+        country: req.body.country,
+        discount: req.body.discount,
+        refundPolicy: req.body.refundPolicy,
+        startTime: req.body.startTime,
+        endTime: req.body.endTime,
+        date: req.body.date ? new Date(req.body.date) : undefined,
+        bannerUrl: req.body.bannerUrl,
+        businessId: req.body.businessId,
+      },
+    });
+
+    res.status(200).json({
+      status: true,
+      message: "Event updated.",
+      body: updatedEvent,
+    });
+  } catch (error) {
+    return next(new AppError(error.message, 500));
+  }
+}
