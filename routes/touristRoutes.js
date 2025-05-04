@@ -1,7 +1,7 @@
 const express = require('express');
-const { touristTest } = require('../controllers/touristController');
+const { eventBook } = require('../controllers/touristController');
 const router = express.Router();
 
-router.post('/test', touristTest);
+router.post('/eventBooking', eventBook);
 
 module.exports = router;

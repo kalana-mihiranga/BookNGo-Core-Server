@@ -6,6 +6,7 @@ const AppError = require("../utils/AppError");
 const { SIGNUP_USER_MODEL, SIGNIN_USER_MODEL } = require('../validation/user');
 const validateRequest = require('../utils/validateRequest');
 const secretKey = process.env.SECRET_KEY;
+const expiredIn = process.env.TOKEN_EXPIRES_IN || "120m"; //2 hour
 
 const handleValidation = (reqBody, validationModel) => {
     const validationErrors = validateRequest(reqBody, validationModel);
@@ -25,7 +26,7 @@ const generateHashedPassword = async (password) => {
 };
 
 const generateToken = (user) => {
-    return jwt.sign({ name: user.name }, secretKey, { expiresIn: "1d" });
+    return jwt.sign({ name: user.name, id: user.id }, secretKey, { expiresIn: expiredIn });
 };
 
 exports.signupUser = async (req, res, next) => {
@@ -55,7 +56,18 @@ exports.signupUser = async (req, res, next) => {
             });
         }
 
-        res.status(200).json({ status: true, message: "Signup successful" });
+        if (req.body.role === 'TOURIST') {
+            await prisma.tourist.create({
+              data: {
+                id: user.id,
+              },
+            });
+        }
+
+        res.status(200).json({
+            status: true, 
+            message: "Signup successful" 
+        });
     } catch (err) {
         return next(new AppError(err.message, 500));
     }
@@ -74,7 +86,13 @@ exports.signinUser = async (req, res, next) => {
 
         const token = generateToken(user);
 
-        res.status(200).json({ status: true, message: "Signin successful", token });
+        res.status(200).json({ 
+            status: true, 
+            message: "Signin successful", 
+            token: token, 
+            role: user.role ,
+            expiredIn: expiredIn
+        });
     } catch (err) {
         return next(new AppError(err.message, 500));
     }
