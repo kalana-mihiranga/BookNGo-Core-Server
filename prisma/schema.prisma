@@ -20,14 +20,21 @@ model User {
   password  String
   createdAt DateTime  @default(now())
   role      Role
-  //if user is business
+  
   business  Business?
+  tourist Tourist?
 }
 
 model Business {
   id   Int  @id
   user User @relation(fields: [id], references: [id])
   events Event[]
+}
+
+model Tourist {
+  id   Int  @id
+  user User @relation(fields: [id], references: [id])
+  bookings TouristEventBooking[]
 }
 
 model Event {
@@ -49,13 +56,13 @@ model Event {
   date DateTime
   bannerUrl String?
 
-  //foreign key constraint
   businessId Int
   business Business @relation(fields: [businessId], references: [id])
 
   specifications    EventSpecification[]
   conditions        EventCondition[]
   priceCategories   PriceCategory[]
+  bookings TouristEventBooking[]
 }
 
 model EventSpecification {
@@ -78,4 +85,21 @@ model PriceCategory {
   price Float
   eventId Int
   event Event @relation(fields: [eventId], references: [id])
+  bookings TouristEventBooking[]
+}
+
+model TouristEventBooking {
+  id Int @id @default(autoincrement())
+  touristId Int
+  eventId Int
+  priceCategoryId Int
+
+  paymentAmount Float
+  ticketCount Int
+  paymentDate DateTime @default(now())
+  isRefunded Boolean @default(false)
+
+  tourist Tourist @relation(fields: [touristId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+  priceCategory PriceCategory @relation(fields: [priceCategoryId], references: [id])
 }

@@ -46,7 +46,7 @@ exports.addEvent = async (req, res, next) => {
         return next(new AppError("Time slot already booked for another event.", 409));
     }
     
-    const event = await prisma.event.create({
+    await prisma.event.create({
       data: {
         name: req.body.name,
         type: req.body.type,
@@ -77,7 +77,10 @@ exports.addEvent = async (req, res, next) => {
       },
     });
 
-    res.status(200).json({ status: true, message: "Event created", body: event });
+    res.status(200).json({ 
+      status: true, 
+      message: "Event created" 
+    });
   } catch (error) {
     return next(new AppError(error.message, 500));
   }
