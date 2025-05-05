@@ -7,11 +7,99 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user {
-  id        Int      @id @default(autoincrement())
-  firstName      String
-  lastName      String
-  email     String   @unique(map: "User_email_key")
-  password String
-  createdAt DateTime @default(now())
+enum Role {
+  TOURIST
+  ADMIN
+  BUSINESS
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique(map: "User_email_key")
+  password  String
+  createdAt DateTime  @default(now())
+  role      Role
+  
+  business  Business?
+  tourist Tourist?
+}
+
+model Business {
+  id   Int  @id
+  user User @relation(fields: [id], references: [id])
+  events Event[]
+}
+
+model Tourist {
+  id   Int  @id
+  user User @relation(fields: [id], references: [id])
+  bookings TouristEventBooking[]
+}
+
+model Event {
+  id Int @id @default(autoincrement())
+  name String
+  type String
+  category String
+  maximumCount Int
+  cordinatorName String
+  cordinatorContact String
+  description String
+  hashtag String
+  location String
+  country String
+  discount Float?
+  refundPolicy String
+  startTime String
+  endTime String
+  date DateTime
+  bannerUrl String?
+
+  businessId Int
+  business Business @relation(fields: [businessId], references: [id])
+
+  specifications    EventSpecification[]
+  conditions        EventCondition[]
+  priceCategories   PriceCategory[]
+  bookings TouristEventBooking[]
+}
+
+model EventSpecification {
+  id Int @id @default(autoincrement())
+  specName String
+  eventId Int
+  event Event  @relation(fields: [eventId], references: [id])
+}
+
+model EventCondition {
+  id Int @id @default(autoincrement())
+  condition String
+  eventId Int
+  event Event  @relation(fields: [eventId], references: [id])
+}
+
+model PriceCategory {
+  id Int @id @default(autoincrement())
+  name String
+  price Float
+  eventId Int
+  event Event @relation(fields: [eventId], references: [id])
+  bookings TouristEventBooking[]
+}
+
+model TouristEventBooking {
+  id Int @id @default(autoincrement())
+  touristId Int
+  eventId Int
+  priceCategoryId Int
+
+  paymentAmount Float
+  ticketCount Int
+  paymentDate DateTime @default(now())
+  isRefunded Boolean @default(false)
+
+  tourist Tourist @relation(fields: [touristId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+  priceCategory PriceCategory @relation(fields: [priceCategoryId], references: [id])
 }

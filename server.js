@@ -8,6 +8,7 @@ const businessRoutes = require('./routes/businessRoutes');
 const touristRoutes = require('./routes/touristRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
+const authenticate = require('./middleware/authenticate');
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,7 +19,7 @@ app.use(bodyParser.json());
 app.use('/api', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/business', businessRoutes);
-app.use('/api/tourist', touristRoutes);
+app.use('/api/tourist', authenticate, touristRoutes);
 
 app.use((req, res, next) => {
     return next(new AppError('URL not found', 404));
