@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -41,6 +40,22 @@ app.delete("/events/:id", (req, res) => {
   events = events.filter((e) => e.id != id);
   res.json({ message: "Event deleted" });
 });
+
+
+
+
+
+// -- Admin Start --
+
+// const eventApprovalRoutes = require('./routes/adminRoutes.js');
+// app.use('/admin', eventApprovalRoutes);
+
+
+app.get('/', (req, res) => {
+  res.send('Hello');
+  console.log("wee");
+});
+// -- Admin End --
 
 // Start server
 app.listen(5000, () => console.log("Server running on http://localhost:5000"));

@@ -12,8 +12,24 @@ enum Role {
   ADMIN
   BUSINESS
 }
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
-model User {
+enum ApprovalAction {
+  CREATE
+  UPDATE
+}
+
+enum approvalCategory{
+  EVENT
+  BUSINESS
+}
+
+
+model User { 
   id        Int       @id @default(autoincrement())
   name      String
   email     String    @unique(map: "User_email_key")
@@ -29,6 +45,7 @@ model Business {
   id   Int  @id
   user User @relation(fields: [id], references: [id])
   events Event[]
+  approvals Approval[] 
 }
 
 model Tourist {
@@ -63,6 +80,8 @@ model Event {
   conditions        EventCondition[]
   priceCategories   PriceCategory[]
   bookings TouristEventBooking[]
+
+  approvals Approval[] 
 }
 
 model EventSpecification {
@@ -103,3 +122,21 @@ model TouristEventBooking {
   event Event @relation(fields: [eventId], references: [id])
   priceCategory PriceCategory @relation(fields: [priceCategoryId], references: [id])
 }
+
+model Approval {
+  id Int @id @default(autoincrement())
+  action ApprovalAction 
+  status ApprovalStatus 
+  approvalCategory approvalCategory
+  reason String?         
+  authorizedBy String?         
+  authorizedAt DateTime?        
+  createdAt DateTime @default(now())
+
+  event Event?  @relation(fields: [eventId], references: [id])
+  eventId Int?
+
+  business Business? @relation(fields: [businessId], references: [id])
+  businessId Int?
+}
+
