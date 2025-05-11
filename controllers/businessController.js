@@ -245,11 +245,15 @@ exports.getBusinessEventsPaginated = async (req, res, next) => {
             ticketCount: true,
           },
         },
+        priceCategories: true
       },
     });
 
     const formattedEvents = events.map((event) => {
       const bookingCount = event.bookings.reduce((sum, b) => sum + b.ticketCount, 0);
+      const minPrice = event.priceCategories.length
+              ? Math.min(...event.priceCategories.map(p => p.price))
+              : 0;
       return {
         name: event.name,
         category: event.category,
@@ -259,6 +263,7 @@ exports.getBusinessEventsPaginated = async (req, res, next) => {
         bannerUrl: event.bannerUrl,
         keyword: event.hashtag,
         currentBookingCount: bookingCount,
+        price: minPrice
       };
     });
 
@@ -280,3 +285,99 @@ exports.getBusinessEventsPaginated = async (req, res, next) => {
     return next(new AppError(error.message, 500));
   }
 };
+
+exports.getBusinessBookings = async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  try {
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
+    });
+    
+    if (!user || !user.business) {
+      return next(new AppError("Invalid request", 400));
+    }
+
+    const totalBookings = await prisma.touristEventBooking.count({
+      where: {
+        event: {
+          businessId: user.business.id
+        }
+      }
+    });
+
+    const bookings = await prisma.touristEventBooking.findMany({
+      where: {
+        event: {
+          businessId: user.business.id
+        }
+      },
+      include: {
+        event: true,
+        tourist: {
+          include: {
+            user: true
+          }
+        },
+        priceCategory: true
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        paymentDate: 'desc'
+      }
+    });
+
+    res.json({
+      status: true,
+      businessId,
+      currentPage: page,
+      totalPages: Math.ceil(totalBookings / limit),
+      totalBookings,
+      bookings
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: error.message });
+  }
+};
+
+exports.getBusinessBasicDetails = async (req, res, next) => {
+  try {
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
+    });
+    
+    if (!user) {
+      return next(new AppError("Business not found", 400));
+    }
+
+    const response = {
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt
+    };
+
+    res.status(200).json({ 
+      status: true, 
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({ status: false, message: error.message });
+  }
+};
+
