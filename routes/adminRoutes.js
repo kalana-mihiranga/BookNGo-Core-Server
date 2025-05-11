@@ -12,5 +12,10 @@ router.get('/approvals/pending-approval', controller.getPendingApprovals);
 // Get history events
 router.get('/approvals/history', controller.getApprovedEvents);
 router.put('/approvals/:id', controller.updateApprovalStatus);
+router.get('/approvals/pending-count', controller.getPendingApprovalCount);
+router.get('/event/country-count', controller.getEventCountByCountry);
+router.get('/event/total', controller.getTotalEventCount);
+router.get('/booking-stats', controller.getBookingStats);
+
 
 module.exports = router;

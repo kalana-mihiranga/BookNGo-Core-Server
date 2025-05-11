@@ -77,4 +77,124 @@ exports.updateApprovalStatus = async (req, res) => {
     }
 };
 
+exports.getPendingApprovalCount = async (req, res) => {
+    try {
+        const count = await prisma.approval.count({
+            where: {
+                status: 'PENDING' // Make sure this matches your ApprovalStatus enum
+            }
+        });
+
+        return res.status(200).json({ pendingCount: count });
+    } catch (error) {
+        console.error('Error fetching pending approval count:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getEventCountByCountry = async (req, res) => {
+    try {
+        const events = await prisma.event.findMany({
+            select: {
+                country: true,
+            },
+        });
+
+        const countryCounts = events.reduce((acc, curr) => {
+            acc[curr.country] = (acc[curr.country] || 0) + 1;
+            return acc;
+        }, {});
+
+        const sorted = Object.entries(countryCounts)
+            .map(([country, count]) => ({ country, count }))
+            .sort((a, b) => b.count - a.count);
+
+        const top4 = sorted.slice(0, 4);
+        const otherTotal = sorted.slice(4).reduce((sum, item) => sum + item.count, 0);
+        const final = [...top4, { country: "Other", count: otherTotal }];
+
+        return res.status(200).json({ data: final });
+    } catch (err) {
+        console.error("Error fetching event counts by country:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+exports.getTotalEventCount = async (req, res) => {
+    try {
+        const count = await prisma.event.count();
+        return res.status(200).json({ totalEvents: count });
+    } catch (error) {
+        console.error("Error fetching event count:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
+exports.getBookingStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const lastYear = currentYear - 1;
+
+    const getMonthlyCounts = async (year) => {
+      const counts = Array(12).fill(0);
+      const bookings = await prisma.touristEventBooking.findMany({
+        where: {
+          paymentDate: {
+            gte: new Date(`${year}-01-01T00:00:00Z`),
+            lt: new Date(`${year + 1}-01-01T00:00:00Z`),
+          },
+        },
+        select: {
+          paymentDate: true,
+        },
+      });
+
+      bookings.forEach((booking) => {
+        const month = booking.paymentDate.getMonth(); // 0-based
+        counts[month]++;
+      });
+
+      return counts;
+    };
+
+    const getNewTourists = async (year) => {
+      const counts = Array(12).fill(0);
+      const users = await prisma.user.findMany({
+        where: {
+          role: 'TOURIST',
+          createdAt: {
+            gte: new Date(`${year}-01-01T00:00:00Z`),
+            lt: new Date(`${year + 1}-01-01T00:00:00Z`),
+          },
+        },
+        select: {
+          createdAt: true,
+        },
+      });
+
+      users.forEach((user) => {
+        const month = user.createdAt.getMonth(); // 0-based
+        counts[month]++;
+      });
+
+      return counts;
+    };
+
+    const lastYearBookings = await getMonthlyCounts(lastYear);
+    const thisYearBookings = await getMonthlyCounts(currentYear);
+    const newTouristsThisYear = await getNewTourists(currentYear);
+
+    res.json({
+      success: true,
+      data: {
+        lastYearBookings,
+        thisYearBookings,
+        newTouristsThisYear,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching booking stats:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
 

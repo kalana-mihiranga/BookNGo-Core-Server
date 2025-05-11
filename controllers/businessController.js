@@ -197,3 +197,14 @@ exports.getEventsByBusinessId = async (req, res, next) => {
     next(new AppError(error.message, 500));
   }
 };
+
+
+exports.getBusinessCount = async (req, res) => {
+  try {
+    const count = await prisma.business.count();
+    return res.status(200).json({ businessCount: count });
+  } catch (error) {
+    console.error("Error fetching business count:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
