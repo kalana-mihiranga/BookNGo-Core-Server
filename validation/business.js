@@ -3,10 +3,6 @@ const Joi = require("joi");
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 exports.CREATE_EVENT_MODEL = Joi.object({
-  businessId: Joi.number().integer().required().messages({
-    "number.base": "Business ID must be a number.",
-    "any.required": "Business ID is required.",
-  }),
   name: Joi.string().required().messages({
     "any.required": "Event name is required.",
   }),

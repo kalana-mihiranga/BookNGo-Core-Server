@@ -71,7 +71,7 @@ model Event {
   startTime String
   endTime String
   date DateTime
-  bannerUrl String?
+  bannerUrl String?              @db.VarChar(6000)
 
   businessId Int
   business Business @relation(fields: [businessId], references: [id])

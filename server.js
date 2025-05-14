@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 
 app.use('/api', userRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/business', businessRoutes);
+app.use('/api/business', authenticate, businessRoutes);
 app.use('/api/tourist', authenticate, touristRoutes);
 
 app.use((req, res, next) => {

@@ -104,3 +104,75 @@ exports.eventBook = async (req, res, next) => {
     return next(new AppError(error.message, 500));
   }
 };
+
+exports.getBookings = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const userId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { tourist: true },
+    });
+
+    if (user.role !== "TOURIST" || !user.tourist) {
+      return next(new AppError("Only tourists can view bookings.", 403));
+    }
+
+    const where = {
+      touristId: user.tourist.id,
+    };
+
+    const bookings = await prisma.touristEventBooking.findMany({
+      where,
+      skip,
+      take: parseInt(limit),
+      orderBy: {paymentDate: "desc"},
+    });
+
+    const total = await prisma.touristEventBooking.count({where});
+
+    res.status(200).json({
+      status: true,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      total,
+      bookings,
+    })
+  } catch (error) {
+    return next(new AppError(error.message, 500));
+  }
+}
+
+exports.getBookingById = async (req, res, next) => {
+  try {
+    const bookingId = parseInt(req.params.id);
+
+    if (isNaN(bookingId)) {
+      return next(new AppError("Invalid booking ID", 400));
+
+    }
+
+    const booking = await prisma.touristEventBooking.findFirst({
+      where: {
+        id: bookingId,
+      },
+      include: {
+        event: true,
+        priceCategory: true,
+      },
+    });
+
+    if (!booking) {
+      return next(new AppError("Booking not found", 404));
+    }
+
+    res.status(200).json({
+      status: true,
+      booking: booking,
+    });
+  } catch (error) {
+    return next(new AppError(error.message, 500));
+  }
+}
