@@ -3,6 +3,7 @@ const prisma = require("../prisma/prismaClient");
 const AppError = require("../utils/AppError");
 const { CREATE_EVENT_MODEL } = require('../validation/business');
 const validateRequest = require('../utils/validateRequest');
+const e = require("express");
 
 const handleValidation = (reqBody, validationModel) => {
     const validationErrors = validateRequest(reqBody, validationModel);
@@ -17,17 +18,23 @@ exports.addEvent = async (req, res, next) => {
     const validationResult = handleValidation(req.body, CREATE_EVENT_MODEL);
     if (validationResult) return res.status(402).json(validationResult);
 
-    const business = await prisma.business.findUnique({
-      where: { id: req.body.businessId },
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
     });
 
-    if (!business) {
-        return next(new AppError("Business not found.", 404));
+    if (user.role !== "BUSINESS" || !user.business) {
+      return next(new AppError("Business not found.", 404));
     }
 
     const existingEvent = await prisma.event.findFirst({
         where:  {
-            businessId: req.body.businessId,
+            businessId: user.business.id,
             date: new Date(req.body.date),
             OR: [
                 {
@@ -64,7 +71,7 @@ exports.addEvent = async (req, res, next) => {
         endTime: req.body.endTime,
         date: new Date(req.body.date),
         bannerUrl: req.body.bannerUrl,
-        businessId: req.body.businessId,
+        businessId: user.business.id,
         specifications: {
           create: req.body.specifications,
         },
@@ -197,6 +204,184 @@ exports.getEventsByBusinessId = async (req, res, next) => {
     next(new AppError(error.message, 500));
   }
 };
+
+exports.getBusinessEventsPaginated = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
+    });
+    
+    if (!user || !user.business) {
+      return next(new AppError("Invalid request", 400));
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const events = await prisma.event.findMany({
+      where: {
+        businessId: parseInt(user.business.id),
+      },
+      skip,
+      take: parseInt(limit),
+      orderBy: { date: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        location: true,
+        date: true,
+        maximumCount: true,
+        bannerUrl: true,
+        hashtag: true,
+        bookings: {
+          select: {
+            ticketCount: true,
+          },
+        },
+        priceCategories: true
+      },
+    });
+
+    const formattedEvents = events.map((event) => {
+      const bookingCount = event.bookings.reduce((sum, b) => sum + b.ticketCount, 0);
+      const minPrice = event.priceCategories.length
+              ? Math.min(...event.priceCategories.map(p => p.price))
+              : 0;
+      return {
+        name: event.name,
+        category: event.category,
+        location: event.location,
+        date: event.date,
+        maximumCount: event.maximumCount,
+        bannerUrl: event.bannerUrl,
+        keyword: event.hashtag,
+        currentBookingCount: bookingCount,
+        price: minPrice
+      };
+    });
+
+    const total = await prisma.event.count({
+      where: {
+        businessId: parseInt(businessId),
+      },
+    });
+
+    res.status(200).json({
+      status: true,
+      businessId: parseInt(businessId),
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalEvents: total,
+      events: formattedEvents,
+    });
+  } catch (error) {
+    return next(new AppError(error.message, 500));
+  }
+};
+
+exports.getBusinessBookings = async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  try {
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
+    });
+    
+    if (!user || !user.business) {
+      return next(new AppError("Invalid request", 400));
+    }
+
+    const totalBookings = await prisma.touristEventBooking.count({
+      where: {
+        event: {
+          businessId: user.business.id
+        }
+      }
+    });
+
+    const bookings = await prisma.touristEventBooking.findMany({
+      where: {
+        event: {
+          businessId: user.business.id
+        }
+      },
+      include: {
+        event: true,
+        tourist: {
+          include: {
+            user: true
+          }
+        },
+        priceCategory: true
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        paymentDate: 'desc'
+      }
+    });
+
+    res.json({
+      status: true,
+      businessId,
+      currentPage: page,
+      totalPages: Math.ceil(totalBookings / limit),
+      totalBookings,
+      bookings
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: error.message });
+  }
+};
+
+exports.getBusinessBasicDetails = async (req, res, next) => {
+  try {
+    const businessId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: businessId },
+      include: {
+        business: true,
+        tourist: true,
+      },
+    });
+    
+    if (!user) {
+      return next(new AppError("Business not found", 400));
+    }
+
+    const response = {
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt
+    };
+
+    res.status(200).json({ 
+      status: true, 
+      data: response
+    });
+  } catch (error) {
+    res.status(500).json({ status: false, message: error.message });
+  }
+};
+
+
 
 
 exports.getBusinessCount = async (req, res) => {
