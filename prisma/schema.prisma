@@ -71,6 +71,7 @@ model Event {
   startTime String
   endTime String
   date DateTime
+  status Boolean @default(true) 
   bannerUrl String?              @db.VarChar(6000)
 
   businessId Int
