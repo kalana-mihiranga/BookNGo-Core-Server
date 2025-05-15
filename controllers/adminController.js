@@ -258,28 +258,25 @@ exports.getEventById = async (req, res) => {
 exports.getEventsByName = async (req, res) => {
   try {
     const { name } = req.query;
-    console.log("name", name);
     if (!name) {
       return res.status(400).json({ error: 'Event name is required' });
     }
-
     const events = await prisma.event.findMany({
       where: {
         name: {
           contains: name,
           lte: 'insensitive',
         }
+      },
+      take: 8,
+      include: {
+        business: {
+          include: {
+            user: true, 
+          }
+        }
       }
     });
-    // const events = await prisma.event.findMany({
-    //   where: {
-    //     name: {
-    //       equals: "Event 1",
-    //     }
-    //   }
-    // });
-
-
     res.status(200).json(events);
   } catch (error) {
     console.error('Error fetching events:', error);

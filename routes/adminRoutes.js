@@ -19,7 +19,7 @@ router.get('/booking-stats', controller.getBookingStats);
 
 // router.get('/event/:id', controller.getEventById);
 router.get('/event/search', controller.getEventsByName);
-router.put('/event/:id/', adminController.toggleEventStatus);
+router.put('/event/:id/', controller.toggleEventStatus);
 
 
 module.exports = router;
