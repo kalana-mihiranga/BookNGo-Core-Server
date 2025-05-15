@@ -17,5 +17,9 @@ router.get('/event/country-count', controller.getEventCountByCountry);
 router.get('/event/total', controller.getTotalEventCount);
 router.get('/booking-stats', controller.getBookingStats);
 
+// router.get('/event/:id', controller.getEventById);
+router.get('/event/search', controller.getEventsByName);
+router.put('/event/:id/', adminController.toggleEventStatus);
+
 
 module.exports = router;
