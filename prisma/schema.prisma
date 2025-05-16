@@ -15,34 +15,41 @@ model User {
   createdAt DateTime  @default(now())
   role      Role
   business  Business?
+  Tourist   Tourist?
 }
 
 model Business {
   id     Int     @id
   user   User    @relation(fields: [id], references: [id])
   events Event[]
+
+  @@index([id], map: "Business_id_fkey")
 }
 
 model Event {
-  id                Int      @id @default(autoincrement())
-  name              String
-  type              String
-  category          String
-  maximumCount      Int
-  cordinatorName    String
-  cordinatorContact String
-  description       String
-  hashtag           String
-  location          String
-  country           String
-  discount          Float?
-  refundPolicy      String
-  startTime         String
-  endTime           String
-  date              DateTime
-  bannerUrl         String?
-  businessId        Int
-  business          Business @relation(fields: [businessId], references: [id])
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  type                String
+  category            String
+  maximumCount        Int
+  cordinatorName      String
+  cordinatorContact   String
+  description         String
+  hashtag             String
+  location            String
+  country             String
+  discount            Float?
+  refundPolicy        String
+  startTime           String
+  endTime             String
+  date                DateTime
+  bannerUrl           String?
+  businessId          Int
+  business            Business              @relation(fields: [businessId], references: [id])
+  EventCondition      EventCondition[]
+  EventSpecification  EventSpecification[]
+  PriceCategory       PriceCategory[]
+  TouristEventBooking TouristEventBooking[]
 
   @@index([businessId], map: "Event_businessId_fkey")
 }
@@ -51,19 +58,55 @@ model EventSpecification {
   id       Int    @id @default(autoincrement())
   specName String
   eventId  Int
+  Event    Event  @relation(fields: [eventId], references: [id])
+
+  @@index([eventId], map: "EventSpecification_eventId_fkey")
 }
 
 model EventCondition {
   id        Int    @id @default(autoincrement())
   condition String
   eventId   Int
+  Event     Event  @relation(fields: [eventId], references: [id])
+
+  @@index([eventId], map: "EventCondition_eventId_fkey")
 }
 
 model PriceCategory {
-  id      Int    @id @default(autoincrement())
-  name    String
-  price   Float
-  eventId Int
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  price               Float
+  eventId             Int
+  Event               Event                 @relation(fields: [eventId], references: [id])
+  TouristEventBooking TouristEventBooking[]
+
+  @@index([eventId], map: "PriceCategory_eventId_fkey")
+}
+
+model Tourist {
+  id                  Int                   @id
+  User                User                  @relation(fields: [id], references: [id])
+  TouristEventBooking TouristEventBooking[]
+
+  @@index([id], map: "Tourist_id_fkey")
+}
+
+model TouristEventBooking {
+  id              Int           @id @default(autoincrement())
+  touristId       Int
+  eventId         Int
+  priceCategoryId Int
+  paymentAmount   Float
+  ticketCount     Int
+  paymentDate     DateTime      @default(now())
+  isRefunded      Boolean       @default(false)
+  Event           Event         @relation(fields: [eventId], references: [id])
+  PriceCategory   PriceCategory @relation(fields: [priceCategoryId], references: [id])
+  Tourist         Tourist       @relation(fields: [touristId], references: [id])
+
+  @@index([eventId], map: "TouristEventBooking_eventId_fkey")
+  @@index([priceCategoryId], map: "TouristEventBooking_priceCategoryId_fkey")
+  @@index([touristId], map: "TouristEventBooking_touristId_fkey")
 }
 
 enum Role {
